@@ -5,7 +5,8 @@
 # 
 # Code by T. Birkandan
 # birkandant@itu.edu.tr
-# Python 3.8.5
+#
+# Language: Python 3.8.5
 ###############################
 
 ##########################################
@@ -31,7 +32,7 @@ def Iij(zeta,Zi,Zj,alpha,beta,q,t,gamma,delta,epsilon):
 def procedure1(a,b,z0,smdelta,H0,H0p,alpha,beta,q,t,gamma,delta,epsilon):
     
     if (H0==0 and H0p==0):
-        d=int((b-a)/smdelta) # Number of points
+        d=int((b-a)/smdelta) # Number of points (smdelta is $\Delta$)
         Z=np.linspace(a,b,num=d) # Equidistant d points between a and b
         H=np.zeros([d,d]) # dxd zero matrix
     elif (H0==0):
@@ -60,17 +61,19 @@ def procedure2(a,b,z0,smdelta,H0,H0p,alpha,beta,q,t,gamma,delta,epsilon):
     T=np.triu(np.ones([d,d]), k=0) 
     Id=np.identity(d) # dxd identity matrix
     
+    # Calculation of K1:
     K1=np.zeros([d,d]) # dxd zero matrix
     for i in range(d):
         for j in range(i,d):
-            # Integration of Iij using quad from scipy module:
+            # Integration of Iij using "quad" from scipy module:
             myIij=quad(Iij,Z[i],Z[j]
                        ,args=(Z[i],Z[j],alpha,beta,q,t,gamma,delta,epsilon))
             K1[i,j]=1+np.exp(-Z[j])*myIij[0]
     
+    # Calculation of H:
     R=np.linalg.inv(Id-smdelta*K1)-Id
     R=np.dot(R,T) # Matrix multiplication
-    H=H0*(1+R[0]) # not sure!
+    H=H0*(1+R[0]) # R[0] is the first row of R
     
     return (Z,H)
 
@@ -83,11 +86,13 @@ def procedure3(a,b,z0,smdelta,H0,H0p,alpha,beta,q,t,gamma,delta,epsilon):
     H=np.zeros([d,d]) # dxd zero matrix
     Id=np.identity(d) # dxd identity matrix
     
+    # Upper triangular matrix with 0 if i>j, exp((j-i)*smdelta)-1 elsewhere:
     T=np.triu(np.ones([d,d]), k=0)
     for i in range(d):
         for j in range(i,d):
             T[i,j]=np.exp((j-i)*smdelta)-1
     
+     # Calculation of K2:
     K2=np.zeros([d,d])
     for i in range(d):
         for j in range(i,d):
@@ -95,15 +100,16 @@ def procedure3(a,b,z0,smdelta,H0,H0p,alpha,beta,q,t,gamma,delta,epsilon):
             fun2=(epsilon/(t-Z[j]))+(gamma/Z[j])+(delta/(Z[j]-1))+1
             K2[i,j]=np.exp(Z[j]-Z[i])*(fun1-fun2)-fun1
     
-    R=np.dot(np.linalg.inv(Id-K2*smdelta),T)
-    H=(H0p-H0)*R[0]
+     # Calculation of H:
+    R=np.dot(np.linalg.inv(Id-smdelta*K2),T) # Matrix multiplication
+    H=(H0p-H0)*R[0] # R[0] is the first row of R
     
     return (Z,H)
 
 ##########################################
 # Main program
 
-# Initial location, interval, $\Delta$:
+# Initial point z0, interval (a,b), $\Delta$:
 z0=6.0
 a=z0
 b=26.0
@@ -120,8 +126,8 @@ t=4.0 # Location of the regular singularity other than {0,1,oo}
 
 # Initial conditions:
 H0=1.0 # Ini. cond. for the function
-H0p=1.0 # Ini. cond. fot the 1st derivative of the function
-#H0p=q/(gamma*t) # May be used for HG (from the series solution).
+H0p=1.0 # Ini. cond. for the 1st derivative of the function
+#H0p=q/(gamma*t) # Might be used in HG case (from the series solution).
 
 # Call the main procedure:
 Zresult,Hresult=procedure1(a,b,z0,smdelta,H0,H0p,alpha,beta,q,t,gamma,delta,epsilon)
