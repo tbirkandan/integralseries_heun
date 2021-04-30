@@ -238,31 +238,41 @@ def procedure3(Z,smdelta,z0,H0,H0p,alpha,beta,q,t,gamma,delta,epsilon,d,directio
 ####################################################################
 ######################## HEUN PARAMETERS 
 ### Time parameters :
-A = 6  # Interval required [A,B]
-B = 26
+A = -2.2  # Interval required [A,B]
+B = 0.8
 
 ### Heun parameters :
-t = 4.0+1j*0 # Called 'a' in Mathematica's HeunG function
-q = 1.0+1j*0
+t = 4.5+1j*0 # Called 'a' in Mathematica's HeunG function
+q = -1.0+1j*0
 
-alpha = 1.5+0*1j
-beta = 1.0+1j*0
-gamma = 2.0+1j*0
-delta = 7+1j*0
-epsilon = -1.0+0*1j
+alpha = 1.0+1j*0
+beta = -1.5+1j*0
+gamma = -0.14+1j*0
+delta = 4.32+1j*0
+epsilon = 1.0 + alpha + beta - gamma - delta # Mathematica's convention
 
 ######################## BEGINNING OF PROCEDURE 
 start_time = time.time()
-N1 = 100  # Total number of subintervals in [A,B]
-N2 = 1000 # Path-sum points per subinterval
+N1 = 2  # Total number of subintervals in [A,B], at least 2 for simulating HeunG
+N2 = 5000 # Path-sum points per subinterval
 
 N1left = int(N1*abs(A)/abs(B-A)) # Number of subintervals in [A,0]
 N1right = N1-N1left # Number of subintervals in [0,B]
 
-z0 = 6
-H0 = 1
-H0p = 1
-Z,H = SubDivide(A,B,N1left,N2,z0,H0,H0p,alpha,beta,q,t,gamma,delta,epsilon)
+z0 = -0.01
+# Initial conditions close to 0
+H0 = 1 + q*z0/(t*gamma)
+H0p = q/(t*gamma) - z0/(t*(1+gamma))*( alpha*beta + q/(t*gamma)*(-1-q-alpha-beta+delta-t*(gamma+delta)) )
+Z1,H1 = SubDivide(A,z0/2,N1left,N2,z0,H0,H0p,alpha,beta,q,t,gamma,delta,epsilon) # Backward from 0
+
+z0 = 0.005
+# Initial conditions close to 0
+H0 = 1 + q*z0/(t*gamma)
+H0p = q/(t*gamma) - z0/(t*(1+gamma))*( alpha*beta + q/(t*gamma)*(-1-q-alpha-beta+delta-t*(gamma+delta)) )
+Z2,H2 = SubDivide(z0/2,B,N1right,N2,z0,H0,H0p,alpha,beta,q,t,gamma,delta,epsilon) # Forward from 0
+
+Z = np.concatenate([Z1,Z2])
+H = np.concatenate([H1,H2])
 
 ########################## OUTPUTS 
 print("--- %s seconds ---" % (time.time() - start_time))
@@ -283,3 +293,21 @@ plt.xlabel('$z$')
 plt.ylabel('$Im(H_G(z))$') 
 plt.show()
 
+
+###Example print values of H_G as close as possible from values z=z1 and z=z2
+z1=0.5
+z2=-0.5
+
+Z1=abs(Z-z1)
+mZ1 = min(abs(Z-z1))
+Z2=abs(Z-z2)
+mZ2= min(abs(Z-z2))
+
+i1=np.where(np.ravel(Z1)==mZ1)
+i2=np.where(np.ravel(Z2)==mZ2)
+
+print(Z[i1])
+print(H[i1])
+
+print(Z[i2])
+print(H[i2])
